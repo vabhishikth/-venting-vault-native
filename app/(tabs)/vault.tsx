@@ -18,6 +18,7 @@ import {
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, FeGaussianBlur, Filter, Path, RadialGradient, Stop } from 'react-native-svg';
+import VoidScene, { VoidState } from '../../components/VoidCharacter';
 
 // ============================================
 // SCREEN COLOR THEMES
@@ -1801,35 +1802,8 @@ const voidStyles = StyleSheet.create({
 });
 
 // ============================================
-// VOID SPRITE COMPONENT
+// VOID SPRITE COMPONENT (Now using 3D VoidScene from VoidCharacter.tsx)
 // ============================================
-const VoidSprite = () => {
-  const [isActive, setIsActive] = useState(false);
-  
-  return (
-    <Pressable 
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setIsActive(!isActive);
-      }}
-      style={styles.voidSpriteContainer}
-    >
-      <View style={[
-        styles.voidSpriteFace,
-        isActive && styles.voidSpriteFaceActive
-      ]}>
-        {isActive && <View style={styles.voidSpriteGlow} />}
-        <View style={styles.voidSpriteEyes}>
-          <View style={[styles.voidSpriteEye, isActive && styles.voidSpriteEyeActive]} />
-          <View style={[styles.voidSpriteEye, isActive && styles.voidSpriteEyeActive]} />
-        </View>
-      </View>
-      {isActive && (
-        <Text style={styles.voidSpriteText}>Breathe with me</Text>
-      )}
-    </Pressable>
-  );
-};
 
 // ============================================
 // EMOTION CARD COMPONENT
@@ -1915,9 +1889,9 @@ const ManualMode = ({
 }) => {
   return (
     <View style={styles.mainContent}>
-      {/* VoidSprite Mascot */}
+      {/* Void Character 3D Mascot */}
       <View style={styles.mascotSection}>
-        <VoidSprite />
+        <VoidScene voidState={VoidState.IDLE} size={160} showStars={false} />
       </View>
 
       {/* Flexible spacer */}
@@ -2499,64 +2473,11 @@ const styles = StyleSheet.create({
     height: 0,
   },
 
-  // VoidSprite
+  // VoidCharacter 3D Mascot
   mascotSection: {
     alignItems: 'center',
-    marginTop: 80,
-    marginBottom: 20,
-  },
-  voidSpriteContainer: {
-    alignItems: 'center',
-    gap: 12,
-  },
-  voidSpriteFace: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#0a0a0f',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  voidSpriteFaceActive: {
-    backgroundColor: '#1e1b4b',
-    borderColor: 'rgba(99, 102, 241, 0.5)',
-    shadowOpacity: 0.6,
-    transform: [{ scale: 1.1 }],
-  },
-  voidSpriteGlow: {
-    position: 'absolute', 
-    width: '100%',
-    height: '100%',
-    borderRadius: 28,
-    backgroundColor: 'rgba(129, 140, 248, 0.3)',
-  },
-  voidSpriteEyes: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  voidSpriteEye: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: 'white',
-  },
-  voidSpriteEyeActive: {
-    opacity: 0.6,
-    transform: [{ scaleY: 0.75 }],
-  },
-  voidSpriteText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#a5b4fc',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
+    marginTop: 60,
+    marginBottom: 10,
   },
 
   // Sparkle

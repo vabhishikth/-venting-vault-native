@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, FlatList, Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
 import { GlassCard } from '../../components/GlassCard';
+import VoidScene, { VoidState } from '../../components/VoidCharacter';
 
 // --- CONFIGURATION ---
 const API_KEY = process.env.EXPO_PUBLIC_OPENROUTER_KEY;
@@ -64,6 +65,9 @@ export default function SentinelScreen() {
   const [isShadowReviewing, setIsShadowReviewing] = useState(false);
   const [hasKeyError, setHasKeyError] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  
+  // Void Character State
+  const [voidState, setVoidState] = useState<VoidState>(VoidState.IDLE);
   
   // Voice State
   const [isRecording, setIsRecording] = useState(false);
@@ -168,6 +172,27 @@ export default function SentinelScreen() {
           saveMessagesToStorage(messages);
       }
   }, [messages, isLoadingHistory]);
+
+  // --- VOID CHARACTER STATE SYNC ---
+  useEffect(() => {
+      if (isTyping || isShadowReviewing) {
+          setVoidState(VoidState.THINKING);
+      } else if (isRecording) {
+          setVoidState(VoidState.SURPRISED);
+      } else {
+          setVoidState(VoidState.IDLE);
+      }
+  }, [isTyping, isShadowReviewing, isRecording]);
+
+  // Briefly show TALKING state when new AI message arrives
+  useEffect(() => {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg?.sender === 'sentinel' && !isTyping) {
+          setVoidState(VoidState.TALKING);
+          const timer = setTimeout(() => setVoidState(VoidState.IDLE), 3000);
+          return () => clearTimeout(timer);
+      }
+  }, [messages.length]);
 
   // Check Config & Permissions
   useEffect(() => {
@@ -738,18 +763,29 @@ Write a short, warm, one-sentence welcome back message. Reference something spec
       <LinearGradient colors={['#050505', '#111827']} style={StyleSheet.absoluteFill} />
       
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Sentinel Channel</Text>
-        <View style={styles.statusBadge}>
-            <View style={[
-                styles.statusDot, 
-                (isTyping || isShadowReviewing || playingVoiceId) && styles.statusDotActive
-            ]} />
-            <Text style={styles.statusText}>
-                {playingVoiceId ? "▶ Playing Voice..." :
-                 isTyping ? "Thinking..." : 
-                 isShadowReviewing ? "Shadow Reviewing..." : 
-                 "Encrypted • Ready"}
-            </Text>
+        {/* 3D Void Character */}
+        <View style={styles.voidCharacterContainer}>
+          <VoidScene 
+            voidState={voidState} 
+            size={80} 
+            showStars={false}
+            showShadow={false}
+          />
+        </View>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerTitle}>Sentinel Channel</Text>
+          <View style={styles.statusBadge}>
+              <View style={[
+                  styles.statusDot, 
+                  (isTyping || isShadowReviewing || playingVoiceId) && styles.statusDotActive
+              ]} />
+              <Text style={styles.statusText}>
+                  {playingVoiceId ? "▶ Playing Voice..." :
+                   isTyping ? "Thinking..." : 
+                   isShadowReviewing ? "Shadow Reviewing..." : 
+                   "Encrypted • Ready"}
+              </Text>
+          </View>
         </View>
       </View>
 
@@ -849,9 +885,29 @@ Write a short, warm, one-sentence welcome back message. Reference something spec
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  header: { paddingTop: 60, paddingBottom: 15, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  header: { 
+    paddingTop: 50, 
+    paddingBottom: 15, 
+    paddingHorizontal: 20,
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    borderBottomWidth: 1, 
+    borderBottomColor: 'rgba(255,255,255,0.05)' 
+  },
+  voidCharacterContainer: {
+    width: 80,
+    height: 80,
+    marginRight: 12,
+    borderRadius: 40,
+    overflow: 'hidden',
+    backgroundColor: '#050505',
+  },
+  headerTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   headerTitle: { color: 'white', fontWeight: '800', fontSize: 16, letterSpacing: 1, textTransform: 'uppercase' },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', marginTop: 6, backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', marginTop: 6, backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignSelf: 'flex-start' },
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#475569', marginRight: 6 },
   statusDotActive: { backgroundColor: '#22d3ee' },
   statusText: { color: '#94a3b8', fontSize: 10, fontWeight: '600' },
