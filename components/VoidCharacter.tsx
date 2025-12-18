@@ -1,7 +1,6 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Stars, ContactShadows, Environment } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber/native';
 import * as THREE from 'three';
 
 // State Enum - Controls the character's behavior
@@ -65,6 +64,63 @@ const noiseGLSL = `
                                   dot(p2,x2), dot(p3,x3) ) );
   }
 `;
+
+// Simple Stars Component (replacing @react-three/drei Stars)
+const SimpleStars = ({ count = 500 }: { count?: number }) => {
+  const starsRef = useRef<THREE.Points>(null);
+  
+  const positions = useMemo(() => {
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const radius = 50 + Math.random() * 50;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      pos[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+      pos[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      pos[i * 3 + 2] = radius * Math.cos(phi);
+    }
+    return pos;
+  }, [count]);
+
+  useFrame(() => {
+    if (starsRef.current) {
+      starsRef.current.rotation.y += 0.0002;
+    }
+  });
+
+  return (
+    <points ref={starsRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={count}
+          array={positions}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial size={0.5} color="#ffffff" sizeAttenuation transparent opacity={0.8} />
+    </points>
+  );
+};
+
+// Floating wrapper component (replacing @react-three/drei Float)
+const FloatingWrapper = ({ children, speed = 2, floatIntensity = 0.5 }: { 
+  children: React.ReactNode; 
+  speed?: number; 
+  floatIntensity?: number;
+}) => {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (groupRef.current) {
+      const t = state.clock.elapsedTime;
+      groupRef.current.position.y = Math.sin(t * speed) * floatIntensity * 0.1;
+      groupRef.current.rotation.y = Math.sin(t * 0.5) * 0.05;
+    }
+  });
+
+  return <group ref={groupRef}>{children}</group>;
+};
 
 // The 3D Character Component (internal)
 const VoidCharacterMesh = ({ voidState }: { voidState: VoidState }) => {
@@ -199,29 +255,22 @@ export default function VoidScene({
   voidState = VoidState.IDLE,
   size = 200,
   showStars = true,
-  showShadow = true
 }: VoidSceneProps) {
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Canvas camera={{ position: [0, 0, 6], fov: 45 }}>
         <color attach="background" args={['#050505']} />
-        <Environment preset="city" background={false} />
         
-        <ambientLight intensity={0.2} />
+        <ambientLight intensity={0.3} />
         <pointLight position={[10, 10, 10]} intensity={1.5} color="#fff" />
-        <spotLight position={[0, 5, -8]} intensity={5} angle={0.6} penumbra={0.5} color="#333333" />
+        <pointLight position={[-10, -10, -10]} intensity={0.5} color="#6366f1" />
+        <spotLight position={[0, 5, -8]} intensity={3} angle={0.6} penumbra={0.5} color="#333333" />
         
-        {showStars && (
-          <Stars radius={100} depth={50} count={1000} factor={4} saturation={0} fade speed={1} />
-        )}
+        {showStars && <SimpleStars count={300} />}
         
-        <Float speed={2} rotationIntensity={0.1} floatIntensity={0.5}>
+        <FloatingWrapper speed={2} floatIntensity={0.5}>
           <VoidCharacterMesh voidState={voidState} />
-        </Float>
-
-        {showShadow && (
-          <ContactShadows opacity={0.6} scale={10} blur={3} far={4} color="#000" />
-        )}
+        </FloatingWrapper>
       </Canvas>
     </View>
   );
@@ -233,19 +282,17 @@ export function VoidSceneFullScreen({ voidState = VoidState.IDLE }: { voidState?
     <View style={styles.fullScreen}>
       <Canvas camera={{ position: [0, 0, 6], fov: 45 }}>
         <color attach="background" args={['#050505']} />
-        <Environment preset="city" background={false} />
         
-        <ambientLight intensity={0.2} />
+        <ambientLight intensity={0.3} />
         <pointLight position={[10, 10, 10]} intensity={1.5} color="#fff" />
-        <spotLight position={[0, 5, -8]} intensity={5} angle={0.6} penumbra={0.5} color="#333333" />
+        <pointLight position={[-10, -10, -10]} intensity={0.5} color="#6366f1" />
+        <spotLight position={[0, 5, -8]} intensity={3} angle={0.6} penumbra={0.5} color="#333333" />
         
-        <Stars radius={100} depth={50} count={1000} factor={4} saturation={0} fade speed={1} />
+        <SimpleStars count={500} />
         
-        <Float speed={2} rotationIntensity={0.1} floatIntensity={0.5}>
+        <FloatingWrapper speed={2} floatIntensity={0.5}>
           <VoidCharacterMesh voidState={voidState} />
-        </Float>
-
-        <ContactShadows opacity={0.6} scale={10} blur={3} far={4} color="#000" />
+        </FloatingWrapper>
       </Canvas>
     </View>
   );
@@ -262,4 +309,3 @@ const styles = StyleSheet.create({
     backgroundColor: '#050505',
   },
 });
-
